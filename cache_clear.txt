@@ -1,0 +1,54 @@
+✅ Controller:
+
+use Illuminate\Support\Facades\Artisan;
+
+if($request->clear_cache_item == 'Yes') {
+    Artisan::call('cache:clear');
+    Artisan::call('config:clear');
+    Artisan::call('view:clear');
+    Artisan::call('route:clear');
+    Artisan::call('optimize:clear');
+}
+
+
+
+✅ View:
+
+<ul class="list-group">
+    <li class="list-group-item d-flex justify-content-start align-items-center">
+        <i class="fas fa-check-circle mr_5"></i> 
+        {{ __('Application cache will be cleared!') }}
+    </li>
+    <li class="list-group-item d-flex justify-content-start align-items-center">
+        <i class="fas fa-check-circle mr_5"></i> 
+        {{ __('Compiled views will be cleared!') }}
+    </li>
+    <li class="list-group-item d-flex justify-content-start align-items-center">
+        <i class="fas fa-check-circle mr_5"></i> 
+        {{ __('Route cache will be cleared!') }}
+    </li>
+    <li class="list-group-item d-flex justify-content-start align-items-center">
+        <i class="fas fa-check-circle mr_5"></i> 
+        {{ __('Configuration cache will be cleared!') }}
+    </li>
+    <li class="list-group-item d-flex justify-content-start align-items-center">
+        <i class="fas fa-check-circle mr_5"></i> 
+        {{ __('Compiled services and packages files will be removed!') }}
+    </li>
+    <li class="list-group-item d-flex justify-content-start align-items-center">
+        <i class="fas fa-check-circle mr_5"></i> 
+        {{ __('Caches will be cleared!') }}
+    </li>
+</ul>
+
+<ul class="list-group">
+    <li class="list-group-item">
+        <input name="clear_cache_item" class="form-check-input me-1" type="checkbox" value="Yes" id="firstCheckboxStretched">
+        <label class="form-check-label stretched-link" for="firstCheckboxStretched">{{ __('I want to clear the cache') }}</label>
+    </li>
+</ul>
+
+
+
+✅ Interface:
+https://prnt.sc/lnx1GsUk-4A_

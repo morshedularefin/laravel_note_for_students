@@ -1,0 +1,84 @@
+✅ Database and Table:
+
+Table Name: "settings"
+Field Name: "home_page_selection"
+Values: "All", "Home 1", "Home 2"
+
+
+
+✅ Route:
+
+Route::get('/', [HomeController::class, 'index']);
+Route::get('/check-home/{home_page}', [HomeController::class, 'check_home'])->name('check_home');
+
+
+
+✅ Home Controller
+
+class HomeController extends Controller
+{
+    public function check_home($home_page)
+    {
+        session()->put('home_page_session', $home_page);
+        return redirect('/');
+    }
+
+    public function index()
+    {
+        $setting = Setting::where('id',1)->first();
+        if($setting->home_page_selection == 'All') 
+        {
+            if(session()->get('home_page_session')) {
+                $home_page = session()->get('home_page_session');
+                if($home_page == 'Home 1') {return $this->home_1();}
+                elseif($home_page == 'Home 2') {return $this->home_2();}
+            }
+            else {
+                session()->put('home_page_session', 'Home 1');
+                return $this->home_1();
+            }
+        }
+        else
+        {
+            session()->put('home_page_session', $setting->home_page_selection);
+            if($setting->home_page_selection == 'Home 1') {return $this->home_1();} 
+            elseif($setting->home_page_selection == 'Home 2') {return $this->home_2();}
+        }
+
+    }
+    public function home_1()
+    {
+        $home1_data = Home1Section::where('id',1)->first();
+        $posts = Post::orderBy('id','desc')->get();
+        return view('front.home_1', compact('posts', 'home1_data'));
+    }
+
+    public function home_2()
+    {
+        $home2_data = Home2Section::where('id',1)->first();
+        $posts = Post::orderBy('id','desc')->get();
+        return view('front.home_2', compact('posts', 'home2_data'));
+    }
+}
+
+
+
+✅ Menu View
+
+@if($setting->home_page_selection == 'All')
+    <li>
+        <a href="javascript:void;">
+            HOME
+        </a>
+        <ul>
+            <li class="{{ session()->get('home_page_session') == 'Home 1' ? 'active' : '' }}"><a href="{{ route('check_home','Home 1') }}">Digital Agency</a></li>
+            <li class="{{ session()->get('home_page_session') == 'Home 2' ? 'active' : '' }}"><a href="{{ route('check_home','Home 2') }}">Creative Agency</a></li>
+        </ul>
+    </li>
+@else
+    <li>
+        <a href="{{ url('/') }}">
+            HOME
+        </a>
+    </li>
+@endif

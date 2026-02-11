@@ -18,12 +18,6 @@ NyMYVaVv1WFl5D7bLk7DN0Tx
 
 
 
-✅ Test Card:
------------------------------------------------------------
-4111 1111 1111 1111
-
-
-
 ✅ .env
 -----------------------------------------------------------
 RAZORPAY_KEY_ID=key_id
@@ -60,6 +54,21 @@ Route::get('/razorpay-cancel', [PaymentController::class, 'razorpay_cancel'])->n
 })
 
 
+
+
+✅ View:
+-----------------------------------------------------------
+<form action="{{ route('payment') }}" method="post">
+@csrf
+
+...... BILLING INFO AND OTHER FIELDS ......
+
+<input id="payment_method_razorpay" type="radio" class="input-radio" name="payment_method" value="razorpay">
+<label for="payment_method_razorpay">Razorpay</label>
+<div class="payment_box payment_method_razorpay">
+    <p>Pay with Razorpay</p>
+</div>
+</form>
 
 
 ✅ Controller:

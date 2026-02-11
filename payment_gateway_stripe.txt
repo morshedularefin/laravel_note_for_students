@@ -35,8 +35,8 @@ composer require stripe/stripe-php
 
 ✅ .env
 ------------------------------------------------
-STRIPE_TEST_PK=STRIPE_TEST_PK=your_publishable_key_here
-STRIPE_TEST_SK=STRIPE_TEST_PK=your_secret_key_here
+STRIPE_TEST_PK=your_publishable_key_here
+STRIPE_TEST_SK=your_secret_key_here
 
 
 

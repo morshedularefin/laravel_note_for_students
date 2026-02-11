@@ -1,0 +1,264 @@
+✅ Login to Razorpay website: 
+-----------------------------------------------------------
+Login with Google: codewitharefin@gmail.com
+
+
+
+✅ Install Razorpay PHP SDK
+-----------------------------------------------------------
+composer require razorpay/razorpay
+
+
+
+✅ Getting API Key:
+-----------------------------------------------------------
+https://prnt.sc/NM6fmR2oLZKt
+rzp_test_MJ78R9A98SI2Ym
+NyMYVaVv1WFl5D7bLk7DN0Tx
+
+
+
+✅ Test Card:
+-----------------------------------------------------------
+4111 1111 1111 1111
+
+
+
+✅ .env
+-----------------------------------------------------------
+RAZORPAY_KEY_ID=key_id
+RAZORPAY_KEY_SECRET=key_secret
+
+
+
+✅ config/razorpay.php (create this file manually)
+-----------------------------------------------------------
+<?php
+return [
+    'key_id' => env('RAZORPAY_KEY_ID'),
+    'key_secret' => env('RAZORPAY_KEY_SECRET'),
+];
+
+
+
+✅ Route:
+-----------------------------------------------------------
+Route::post('/razorpay-success', [PaymentController::class, 'razorpay_success'])->name('razorpay_success');
+Route::get('/razorpay-cancel', [PaymentController::class, 'razorpay_cancel'])->name('razorpay_cancel');
+
+
+
+✅ bootstrap/app.php
+-----------------------------------------------------------
+->withMiddleware(function (Middleware $middleware): void {
+    $middleware->alias([
+        ....
+    ]);
+    $middleware->validateCsrfTokens(except: [
+        'razorpay-success',
+    ]);
+})
+
+
+
+
+✅ Controller:
+-----------------------------------------------------------
+use Razorpay\Api\Api;
+
+👉 Main Function Content: 
+
+$api = new \Razorpay\Api\Api(config('razorpay.key_id'), config('razorpay.key_secret'));
+$razorpayOrder = $api->order->create([
+    'amount' => $total * 100, // amount in paise
+    'currency' => 'INR',
+    'receipt' => 'ORD-' . strtoupper(uniqid()),
+]);
+
+if(isset($razorpayOrder['id']) && $razorpayOrder['id'] != '') {
+    session()->put('billing', [
+        'name' => $request->name,
+        'email' => $request->email,
+        'phone' => $request->phone,
+        'address' => $request->address,
+        'country' => $request->country,
+        'state' => $request->state,
+        'city' => $request->city,
+        'zip_code' => $request->zip_code,
+        'note' => $request->note,
+    ]);
+
+    return view('front.razorpay', [
+        'razorpay_key_id' => config('razorpay.key_id'),
+        'razorpay_order_id' => $razorpayOrder['id'],
+        'razorpay_amount' => $total * 100,
+    ]);
+} else {
+    return redirect()->route('razorpay_cancel');
+}
+
+
+👉 Success Function Content: 
+public function razorpay_success(Request $request)
+{
+    // Verify payment signature
+    try {
+        $api = new \Razorpay\Api\Api(config('razorpay.key_id'), config('razorpay.key_secret'));
+        $attributes = [
+            'razorpay_order_id' => $request->razorpay_order_id,
+            'razorpay_payment_id' => $request->razorpay_payment_id,
+            'razorpay_signature' => $request->razorpay_signature,
+        ];
+        $api->utility->verifyPaymentSignature($attributes);
+    } catch(\Exception $e) {
+        return redirect()->route('checkout')->with('error', 'Payment verification failed.');
+    }
+
+    // Insert data into database
+    $order_number = 'ORD-'.strtoupper(uniqid());
+
+    $cart = session()->get('cart', []);
+    $subtotal = 0;
+    foreach($cart as $item) {
+        $subtotal += $item['price'];
+    }
+    if(session()->has('coupon')) {
+        $discount_amount = session('coupon.discount_amount');
+    } else {
+        $discount_amount = 0.00;
+    }
+    $total = $subtotal - $discount_amount;
+
+    $order = new Order;
+    $order->user_id = Auth::guard('web')->user()->id;
+    $order->order_number = $order_number;
+    $order->coupon_code = session()->has('coupon') ? session('coupon.code') : null;
+    $order->subtotal = $subtotal;
+    $order->discount_amount = $discount_amount;
+    $order->total = $total;
+    $order->payment_method = 'Razorpay';
+    $order->currency = 'INR';
+    $order->billing_name = session('billing.name');
+    $order->billing_email = session('billing.email');
+    $order->billing_phone = session('billing.phone');
+    $order->billing_address = session('billing.address');
+    $order->billing_country = session('billing.country');
+    $order->billing_state = session('billing.state');
+    $order->billing_city = session('billing.city');
+    $order->billing_zip_code = session('billing.zip_code');
+    $order->note = session('billing.note');
+    $order->status = 'Completed';
+    $order->save();
+
+    // Insert items into order_details table
+    foreach($cart as $id => $item) {
+        $order_detail = new OrderDetail;
+        $order_detail->order_id = $order->id;
+        $order_detail->user_id = Auth::guard('web')->user()->id;
+        $order_detail->product_id = $id;
+        $order_detail->price = $item['price'];
+        $order_detail->save();
+    }
+
+    // Send Email to User
+    $mail_message = "<h2>Order Detail:</h2>";
+    $mail_message .= "<p>Order Number: ".$order_number."</p>";
+    $mail_message .= "<p>Coupon Code: ".(session()->has('coupon') ? session('coupon.code') : 'N/A')."</p>";
+    $mail_message .= "<p>Subtotal: ₹".$subtotal."</p>";
+    $mail_message .= "<p>Discount Amount: ₹".$discount_amount."</p>";
+    $mail_message .= "<p>Total Amount: ₹".$total."</p>";
+    $mail_message .= "<p>Payment Method: Razorpay</p>";
+    $mail_message .= "<p>Currency: INR</p>";
+
+    $mail_message .= "<h2>Billing Information:</h2>";
+    $mail_message .= "<p>Name: ".session('billing.name')."</p>";
+    $mail_message .= "<p>Email: ".session('billing.email')."</p>";
+    $mail_message .= "<p>Phone: ".session('billing.phone')."</p>";
+    $mail_message .= "<p>Address: ".session('billing.address')."</p>";
+    $mail_message .= "<p>Country: ".session('billing.country')."</p>";
+    $mail_message .= "<p>State: ".session('billing.state')."</p>";
+    $mail_message .= "<p>City: ".session('billing.city')."</p>";
+    $mail_message .= "<p>Zip Code: ".session('billing.zip_code')."</p>";
+    $mail_message .= "<p>Note: ".session('billing.note')."</p>";
+
+    $mail_message .= "<h2>Products:</h2>";
+    $mail_message .= "<ul>";
+    foreach($cart as $id => $item) {
+        $mail_message .= "<li>".$item['name']." - ₹".$item['price']."</li>";
+    }
+    $mail_message .= "</ul>";
+
+    Mail::to(Auth::guard('web')->user()->email)->send(new OrderMailToUser($mail_message));
+
+    session()->forget('cart');
+    session()->forget('coupon');
+    session()->forget('billing');
+
+    return redirect()->route('shop')->with('success', 'Payment is successful.');
+}
+
+    
+
+👉 Cancel Function Content: 
+public function razorpay_cancel()
+{
+    $error_message = "You have canceled the payment.";
+    return redirect()->route('checkout')->with('error', $error_message);
+}
+
+
+
+✅ razorpay.blade.php
+-----------------------------------------------------------
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    var options = {
+        "key": "{{ $razorpay_key_id }}",
+        "amount": "{{ $razorpay_order['amount'] }}",
+        "currency": "{{ $razorpay_order['currency'] }}",
+        "name": "{{ config('app.name') }}",
+        "order_id": "{{ $razorpay_order['id'] }}",
+        "handler": function (response){
+            // POST to razorpay-success
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("razorpay_success") }}';
+            // CSRF token
+            var csrf = document.createElement('input');
+            csrf.name = '_token';
+            csrf.value = '{{ csrf_token() }}';
+            form.appendChild(csrf);
+            // Payment fields
+            ['razorpay_payment_id','razorpay_order_id','razorpay_signature'].forEach(function(field){
+                var input = document.createElement('input');
+                input.name = field;
+                input.value = response[field];
+                form.appendChild(input);
+            });
+            document.body.appendChild(form);
+            form.submit();
+        },
+        "modal": {
+            "ondismiss": function(){
+                window.location.href = '{{ route("razorpay_cancel") }}';
+            }
+        },
+        "prefill": {
+            "name": "{{ session('billing.name') }}",
+            "email": "{{ session('billing.email') }}",
+            "contact": "{{ session('billing.phone') }}"
+        }
+    };
+    var rzp = new Razorpay(options);
+    rzp.open();
+</script>
+
+
+
+
+✅ How to Test
+-----------------------------------------------------------
+- When payment using website, a phone number will be asked.
+- You can give your BD number there. 
+- Go to "Netbanking > Indian Bank" to pay.
+- https://prnt.sc/cJB7aVuWLoi2

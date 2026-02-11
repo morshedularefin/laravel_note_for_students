@@ -1,0 +1,45 @@
+✅ View:
+
+@foreach($posts as $post)
+// ....
+@endforeach
+
+@if($posts->hasPages())
+
+    {{-- Previous Page Link --}}
+    @if (!$posts->onFirstPage())
+        <li class="page-item">
+            <a class="page-link" href="{{ $posts->previousPageUrl() }}">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </li>
+    @endif
+
+    {{-- Pagination Elements --}}
+    @foreach ($posts->getUrlRange(1, $posts->lastPage()) as $page => $url)
+        <li class="page-item {{ ($page == $posts->currentPage()) ? 'active' : '' }}">
+            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+        </li>
+    @endforeach
+
+    {{-- Next Page Link --}}
+    @if ($posts->hasMorePages())
+        <li class="page-item next-page">
+            <a class="page-link" href="{{ $posts->nextPageUrl() }}">
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </li>
+    @endif
+
+@endif
+
+
+
+
+✅ Controller:
+
+public function blog()
+{
+    $posts = Post::orderBy('id','desc')->paginate(3);
+    return view('front.blog', compact('posts'));
+}

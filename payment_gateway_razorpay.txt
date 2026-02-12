@@ -271,3 +271,5 @@ public function razorpay_cancel()
 - You can give your BD number there. 
 - Go to "Netbanking > Indian Bank" to pay.
 - https://prnt.sc/cJB7aVuWLoi2
+
+

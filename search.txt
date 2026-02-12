@@ -1,1 +1,190 @@
-✅ 
+✅ Route:
+
+Route::get('/shop', [ProductController::class, 'index'])->name('shop');
+
+
+
+✅ Controller:
+
+public function index(Request $request)
+{
+    $product_categories = ProductCategory::orderBy('name')->get();
+
+    $products = Product::query();
+
+    if($request->search != null && $request->search != '') {
+        $products = $products->where('name', 'like', '%' . $request->search . '%');
+    }
+
+    if($request->category != null) {
+        $products = $products->where('product_category_id', $request->category);
+    }
+
+    if($request->price_min != null && $request->price_max != null) {
+        $products = $products->whereBetween('sale_price', [$request->price_min, $request->price_max]);
+    }
+
+    if($request->order == null || $request->order == '') {
+        $products = $products->orderBy('id', 'desc');
+    } else {
+        if($request->order == 'latest') {
+            $products = $products->orderBy('id', 'desc');
+        } elseif($request->order == 'oldest') {
+            $products = $products->orderBy('id', 'asc');
+        } elseif($request->order == 'popularity') {
+            $products = $products->orderBy('view_count', 'desc');
+        } elseif($request->order == 'rating') {
+            $products = $products->orderBy('average_rating', 'desc');
+        } elseif($request->order == 'price_asc') {
+            $products = $products->orderBy('sale_price', 'asc');
+        } elseif($request->order == 'price_desc') {
+            $products = $products->orderBy('sale_price', 'desc');
+        }
+    }
+
+    $products = $products->paginate(10);
+
+    return view('front.shop', compact('product_categories', 'products'));
+}
+
+
+
+
+✅ View:
+
+<form action="{{ route('shop') }}" method="get">
+
+👉 Filter:
+
+Showing {{ $products->firstItem() }}–{{ $products->lastItem() }} of {{ $products->total() }} results
+
+<select name="order">
+    <option value="latest" {{ request('order') == 'latest' ? 'selected' : '' }}>
+        Sort by latest
+    </option>
+    <option value="oldest" {{ request('order') == 'oldest' ? 'selected' : '' }}>
+        Sort by oldest
+    </option>
+    <option value="popularity" {{ request('order') == 'popularity' ? 'selected' : '' }}>
+        Sort by popularity
+    </option>
+    <option value="rating" {{ request('order') == 'rating' ? 'selected' : '' }}>
+        Sort by average rating
+    </option>
+    <option value="price_asc" {{ request('order') == 'price_asc' ? 'selected' : '' }}>
+        Sort by price: low to high
+    </option>
+    <option value="price_desc" {{ request('order') == 'price_desc' ? 'selected' : '' }}>
+        Sort by price: high to low
+    </option>
+</select>
+
+
+👉 Sidebar
+
+<input type="text" placeholder="Search . . ." name="search" value="{{ request('search') }}">
+
+<div class="form-check">
+    <input class="form-check-input" type="radio" name="category" id="radio_item_0" value="" {{ request('category') == null ? 'checked' : '' }}>
+    <label class="form-check-label" for="radio_item_0">
+        All Categories
+    </label>
+</div>
+@foreach($product_categories as $product_category)
+<div class="form-check">
+    <input class="form-check-input" type="radio" name="category" id="radio_item_{{ $loop->iteration }}" value="{{ $product_category->id }}" {{ request('category') == $product_category->id ? 'checked' : '' }}>
+    <label class="form-check-label" for="radio_item_{{ $loop->iteration }}">
+        {{ $product_category->name }}
+    </label>
+</div>
+@endforeach
+
+
+<div class="widget_price_filter">
+    <div class="price_slider_wrapper">
+        <div class="price_slider"></div>
+        <div class="price_label">
+            Price: <span class="from">${{ request('price_min') ? request('price_min') : 1 }}</span> — <span class="to">${{ request('price_max') ? request('price_max') : 999 }}</span>
+        </div>
+        <input type="hidden" name="price_min" id="price_min" value="{{ request('price_min') ? request('price_min') : 1 }}">
+        <input type="hidden" name="price_max" id="price_max" value="{{ request('price_max') ? request('price_max') : 999 }}">
+    </div>
+</div>
+<script>
+    $(".price_slider").slider({
+        range: true,
+        min: 0,
+        max: 1000,
+        values: [{{ request('price_min') ? request('price_min') : 1 }}, {{ request('price_max') ? request('price_max') : 999 }}],
+        slide: function (event, ui) {
+            $(".from").text("$" + ui.values[0]);
+            $(".to").text("$" + ui.values[1]);
+            $("#price_min").val(ui.values[0]);
+            $("#price_max").val(ui.values[1]);
+        }
+    });
+    $(".from").text("$" + $(".price_slider").slider("values", 0));
+    $(".to").text("$" + $(".price_slider").slider("values", 1));
+    $("#price_min").val($(".price_slider").slider("values", 0));
+    $("#price_max").val($(".price_slider").slider("values", 1));
+</script>
+
+
+<button type="submit" class="btn">FILTER</button>
+
+
+👉 Result
+
+@foreach($products as $product)
+// ....
+@php
+$reviews = App\Models\Review::where('product_id', $product->id)->get();
+$average_rating = $product->average_rating;
+$display_rating = round($average_rating * 2) / 2;
+@endphp
+<div class="product-rating">
+    <?php
+    for ($i = 1; $i <= 5; $i++) {
+        if ($display_rating >= $i) {
+            // Full Star: If the current loop index is less than or equal to rating
+            echo '<i class="fas fa-star"></i>';
+        } elseif ($display_rating > ($i - 1) && $display_rating < $i) {
+            // Half Star: If the rating is between the previous and current index
+            echo '<i class="fas fa-star-half-alt"></i>';
+        } else {
+            // Empty Star: If the rating hasn't reached this index yet
+            echo '<i class="far fa-star"></i>';
+        }
+    }
+    ?>
+    (<?php echo $reviews->count(); ?> Customer Reviews)
+</div>
+@endforeach
+
+@if ($products->hasPages())
+    {{-- Previous Page Link --}}
+    @if (!$products->onFirstPage())
+        <li class="page-item">
+            <a class="page-link" href="{{ $products->appends($_GET)->previousPageUrl() }}">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </li>
+    @endif
+    {{-- Pagination Elements --}}
+    @foreach ($products->appends($_GET)->getUrlRange(1, $products->lastPage()) as $page => $url)
+        <li class="page-item {{ ($page == $products->currentPage()) ? 'active' : '' }}">
+            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+        </li>
+    @endforeach
+    {{-- Next Page Link --}}
+    @if ($products->hasMorePages())
+        <li class="page-item next-page">
+            <a class="page-link" href="{{ $products->appends($_GET)->nextPageUrl() }}">
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </li>
+    @endif
+@endif
+
+
+</form>

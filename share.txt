@@ -1,0 +1,25 @@
+✅ View:
+
+<a href="https://www.facebook.com/sharer/sharer.php?u={{ request()->fullUrl() }}" target="_blank" rel="noopener noreferrer">Share on Facebook</a>
+
+<a href="https://www.linkedin.com/sharing/share-offsite/?url={{ request()->fullUrl() }}" target="_blank" rel="noopener noreferrer">Share on Linkedin</a>
+
+<a href="https://twitter.com/intent/tweet?url={{ request()->fullUrl() }}&text=Check%20this%20out!" target="_blank" rel="noopener noreferrer">Share on Twitter</a>
+
+
+
+✅ Master View:
+
+@if(Route::is('post'))
+<meta property="og:title" content="{{ $post->title }}" />
+<meta property="og:description" content="{{ $post->short_description }}" />
+<meta property="og:image" content="{{ asset('uploads/'.$post->photo) }}" />
+<meta property="og:url" content="{{ request()->fullUrl() }}" />
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="{{ $post->title }}">
+<meta name="twitter:site" content="@yourusername">
+<meta name="twitter:title" content="{{ $post->title }}">
+<meta name="twitter:description" content="{{ $post->short_description }}">
+<meta name="twitter:image" content="{{ asset('uploads/'.$post->photo) }}">
+@endif

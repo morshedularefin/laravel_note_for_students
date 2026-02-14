@@ -1,0 +1,80 @@
+✅ Route:
+-------------------------------------------------
+Route::get('/lang/{language}', function($language) {
+    if(in_array($language, ['en', 'bn'])) {
+        Session::put('language', $language);
+    }
+    return redirect()->back();
+})->name('language');
+
+
+✅ Create Middleware:
+-------------------------------------------------
+php artisan make:middleware LocalizationMiddleware
+
+
+✅ Middleware:
+-------------------------------------------------
+use Illuminate\Support\Facades\App;
+
+public function handle(Request $request, Closure $next): Response 
+{
+    $language = Session::get('language', 'en');
+    App::setLocale($language);
+    return $next($request);
+}
+
+
+✅ bootstrap/app.php
+-------------------------------------------------
+use App\Http\Middleware\LocalizationMiddleware;
+
+->withMiddleware(function (Middleware $middleware): void {
+    $middleware->appendToGroup('web',LocalizationMiddleware::class);
+})
+
+
+✅ resources/lang/en/messages.php
+-------------------------------------------------
+<?php
+
+return [
+    'home' => 'Home',
+    'about' => 'About',
+    'welcome' => 'This is website of :name'
+];
+
+
+✅ resources/lang/bn/messages.php
+-------------------------------------------------
+<?php
+
+return [
+    'home' => 'হোম',
+    'about' => 'সম্পর্কে',
+    'welcome' => 'এটা :name এর ওয়েবসাইট'
+];
+
+
+
+✅ welcome.blade.php
+-------------------------------------------------
+
+<h1>__('messages.welcome', 'Arefin')</h1>
+
+<a href="">__('messages.home')</a>
+<a href="">__('messages.about')</a>
+
+<a href="{{ route('language', 'en') }}">English</a>
+<a href="{{ route('language', 'bn') }}">Bangla</a>
+
+
+👉 ANOTHER WAY (Not Recommended)
+
+<h1>@lang('messages.welcome', 'Arefin')</h1>
+
+<a href="">@lang('messages.home')</a>
+<a href="">@lang('messages.about')</a>
+
+<a href="{{ route('language', 'en') }}">English</a>
+<a href="{{ route('language', 'bn') }}">Bangla</a>
